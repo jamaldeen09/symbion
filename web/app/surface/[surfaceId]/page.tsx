@@ -1,7 +1,7 @@
 import DesktopBackground from '@/components/surface/SurfaceBackground';
 import BottomDock from '@/components/surface/BottomDock';
-import DraggableArtifact from '@/components/surface/artifact-launcher/DraggableArtifactLauncher';
-import ArtifactWindows from '@/components/surface/artifact-window/ArtifactWindows';
+import DraggableArtifact from '@/components/surface/DraggableNode';
+import ArtifactWindows from '@/components/surface/Windows';
 
 export default function SurfacePage() {
   return (

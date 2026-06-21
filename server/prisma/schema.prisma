@@ -7,14 +7,145 @@ datasource db {
   provider = "postgresql"
 }
 
+enum ArtifactType {
+  file
+  folder
+}
+
+enum WindowMode {
+  full_screen
+  default
+}
+
 model User {
-  id    String @id
-  email String @unique
-  fullName String @map("full_name")
-  username String? @unique
-  imageUrl String? @map("image_url")
+  id        String   @id
+  email     String   @unique
+  fullName  String   @map("full_name")
+  username  String?  @unique
+  imageUrl  String?  @map("image_url")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @map("updated_at")
 
+  surface  Surface?  @relation("UserSurface")
+  projects Project[]
+  windows  Window[]
+
   @@map("users")
+}
+
+model Surface {
+  id              String   @id @default(cuid())
+  backgroundUrl   String?  @map("background_url")
+  backgroundColor String?   @map("background_color")
+  nodes           Node[]
+  windows         Window[]
+  userId          String   @unique @map("user_id")
+  user            User     @relation("UserSurface", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @default(now()) @map("updated_at")
+
+  agentMessages  AgentMessage[]
+  @@map("surfaces")
+}
+
+model Window {
+  id        String     @id @default(cuid())
+  xPos      Int        @map("x_pos")
+  yPos      Int        @map("y_pos")
+  width     Int
+  height    Int
+  zIndex    Int        @map("z_index")
+  mode      WindowMode
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @default(now()) @map("updated_at")
+
+  surfaceId String  @map("surface_id")
+  surface   Surface @relation(fields: [surfaceId], references: [id], onDelete: Cascade)
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("windows")
+}
+
+model Project {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+
+  // A project can be connected to one node
+  nodeId String @unique @map("node_id")
+  node   Node   @relation("ProjectNode", fields: [nodeId], references: [id])
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id])
+  
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @default(now()) @map("updated_at")
+  @@map("projects")
+}
+
+model Node {
+  id       String  @id @default(cuid())
+  name     String
+  position Int     @default(0)
+  isFolder Boolean @map("is_folder")
+
+  parentId String? @map("parent_id")
+  parent   Node?   @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children Node[]  @relation("FolderHierarchy")
+
+  // Link to the actual physical data (Null if this node is a folder)
+  fileBlobId String?   @map("file_blob_id")
+  fileBlob   FileBlob? @relation(fields: [fileBlobId], references: [id])
+
+  // The surface the node belongs to
+  surfaceId String  @map("surface_id")
+  surface   Surface @relation(fields: [surfaceId], references: [id])
+
+  // Project this node is connected to (for listing on the projects store)
+  projectId String?   @map("project_id")
+  project   Project? @relation("ProjectNode")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([parentId])
+  @@map("nodes")
+}
+
+// THE METADATA & PHYSICAL FILE STORAGE (Images, Audio, Videos, Documents)
+model FileBlob {
+  id        String @id @default(cuid())
+  url       String? // S3/Cloud storage path
+  extension String // png, mp3, pdf
+  mimeType  String @map("mime_type")
+  size      Int // Size in bytes
+  content  String? 
+
+  // Media-specific metadata (optional depending on type)
+  width    Int?
+  height   Int?
+  duration Float?
+
+  // A file blob can be referenced by multiple Nodes (Shortcuts/Links)
+  nodes Node[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("file_blobs")
+}
+
+
+model AgentMessage {
+  id        String   @id @default(cuid())
+  surfaceId String   @map("surface_id")
+  projectId String?  @map("project_id")   // optional: only when a project is involved
+  role      String   // "user" or "model"
+  parts     Json     // Gemini Part[] serialized as JSON
+  createdAt DateTime @default(now()) @map("created_at")
+
+  surface   Surface  @relation(fields: [surfaceId], references: [id], onDelete: Cascade)
+  @@index([surfaceId])
+  @@map("agent_messages")
 }

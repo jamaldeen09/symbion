@@ -1,8 +1,9 @@
 "use client"
 import React from 'react';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 
-interface DraggableIconProps {
+interface DraggableNodeProps {
     title?: string;
     imgSrc?: string;
     initialTop?: string;
@@ -10,14 +11,13 @@ interface DraggableIconProps {
     constraintsRef?: React.RefObject<HTMLDivElement | null>;
 }
 
-export default function DraggableArtifact({
+export default function DraggableNode({
     title = "solar * Białas",
     imgSrc = "https://framerusercontent.com/images/54Fk6FZWk05pc226hIGqlYKpM.jpg",
     initialTop = "52%",
     initialLeft = "72%",
     constraintsRef
-}: DraggableIconProps) {
-
+}: DraggableNodeProps) {
     return (
         <motion.div
             drag
@@ -37,11 +37,13 @@ export default function DraggableArtifact({
         >
             {/* Icon Image Frame Container */}
             <div className="relative w-[60px] h-[60px] rounded-[2px] overflow-hidden shadow-md transition-shadow duration-200 bg-zinc-900 pointer-events-none">
-                <img
+                <Image
                     src={imgSrc}
                     alt={title}
                     className="w-full h-full object-cover select-none pointer-events-none"
                     draggable={false}
+                    unoptimized
+                    fill
                 />
             </div>
 

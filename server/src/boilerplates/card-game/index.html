@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Card Game</title>
+    <style>
+      :root {
+        --bg: #1a1a2e;
+        --panel: #393e6e;
+        --panel-light: #454b86;
+        --accent: #ffd369;
+        --text: #eee;
+        --win: #4caf50;
+        --lose: #e15757;
+        --tie: #aab;
+        --card-bg: #f4f1ea;
+        --card-back: #2b2f5c;
+        --red-suit: #d1453b;
+        --black-suit: #20203a;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Segoe UI", system-ui, -apple-system, Helvetica, Arial,
+          sans-serif;
+        padding: 20px;
+      }
+
+      .game-container {
+        width: 100%;
+        max-width: 720px;
+        background: var(--panel);
+        border-radius: 16px;
+        padding: 32px;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+      }
+
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 22px;
+      }
+
+      header h1 {
+        font-size: 1.4rem;
+        margin: 0;
+        color: var(--accent);
+      }
+
+      .scoreboard {
+        display: flex;
+        gap: 14px;
+        font-weight: 600;
+      }
+
+      .score-chip {
+        background: var(--bg);
+        border-radius: 10px;
+        padding: 8px 14px;
+      }
+
+      .score-chip.you {
+        color: var(--accent);
+      }
+      .score-chip.cpu {
+        color: var(--text);
+      }
+
+      .zone-label {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #c9c9e8;
+        margin-bottom: 8px;
+      }
+
+      .hand {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 22px;
+        min-height: 100px;
+      }
+
+      .card {
+        width: 64px;
+        height: 92px;
+        background: var(--card-bg);
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 6px 8px;
+        font-weight: 700;
+        color: var(--black-suit);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        cursor: pointer;
+        transition: transform 0.12s ease, box-shadow 0.12s ease;
+        user-select: none;
+      }
+
+      .card.red {
+        color: var(--red-suit);
+      }
+
+      .card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+      }
+
+      .card .top {
+        font-size: 1rem;
+        text-align: left;
+      }
+      .card .suit-big {
+        font-size: 1.4rem;
+        text-align: center;
+      }
+      .card .bottom {
+        font-size: 1rem;
+        text-align: right;
+        transform: rotate(180deg);
+      }
+
+      .card-back {
+        width: 64px;
+        height: 92px;
+        border-radius: 8px;
+        background: repeating-linear-gradient(
+          45deg,
+          var(--card-back),
+          var(--card-back) 6px,
+          #353a6b 6px,
+          #353a6b 12px
+        );
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      }
+
+      .card.disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        pointer-events: none;
+      }
+
+      .table {
+        background: var(--bg);
+        border-radius: 14px;
+        padding: 24px;
+        margin-bottom: 22px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 36px;
+        min-height: 150px;
+      }
+
+      .table-slot {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .table-slot .slot-label {
+        font-size: 0.75rem;
+        color: #c9c9e8;
+        text-transform: uppercase;
+      }
+
+      .table-slot .empty-slot {
+        width: 64px;
+        height: 92px;
+        border: 2px dashed #4d5290;
+        border-radius: 8px;
+      }
+
+      .vs-label {
+        font-weight: 700;
+        color: var(--accent);
+        font-size: 1.1rem;
+      }
+
+      .result-banner {
+        text-align: center;
+        font-weight: 700;
+        font-size: 1.1rem;
+        min-height: 28px;
+        margin-bottom: 14px;
+      }
+
+      .result-banner.win {
+        color: var(--win);
+      }
+      .result-banner.lose {
+        color: var(--lose);
+      }
+      .result-banner.tie {
+        color: var(--tie);
+      }
+
+      .controls {
+        display: flex;
+        justify-content: center;
+        gap: 14px;
+      }
+
+      .btn {
+        background: var(--accent);
+        color: #1a1a2e;
+        border: none;
+        padding: 12px 26px;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: transform 0.12s ease, opacity 0.15s ease;
+      }
+
+      .btn.secondary {
+        background: var(--panel-light);
+        color: var(--text);
+        border: 2px solid var(--accent);
+      }
+
+      .btn:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+      .btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+      }
+
+      .hidden {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="game-container">
+      <header>
+        <h1>🃏 Card Game</h1>
+        <div class="scoreboard">
+          <div class="score-chip you" id="player-score">You: 0</div>
+          <div class="score-chip cpu" id="cpu-score">CPU: 0</div>
+        </div>
+      </header>
+
+      <div class="zone-label">Opponent's hand</div>
+      <div class="hand" id="cpu-hand"></div>
+
+      <div class="table">
+        <div class="table-slot">
+          <div class="slot-label">You played</div>
+          <div id="player-slot"><div class="empty-slot"></div></div>
+        </div>
+        <div class="vs-label">VS</div>
+        <div class="table-slot">
+          <div class="slot-label">CPU played</div>
+          <div id="cpu-slot"><div class="empty-slot"></div></div>
+        </div>
+      </div>
+
+      <div class="result-banner" id="result-banner">
+        Pick a card to play your first round.
+      </div>
+
+      <div class="controls">
+        <button class="btn" id="next-round-btn" disabled>Next Round →</button>
+        <button class="btn secondary" id="reset-btn">Reset Game</button>
+      </div>
+
+      <div class="zone-label" style="margin-top: 22px">Your hand</div>
+      <div class="hand" id="player-hand"></div>
+    </main>
+
+    <script>
+      const SUITS = ["♠", "♥", "♦", "♣"];
+      const RANKS = [
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "J",
+        "Q",
+        "K",
+        "A",
+      ];
+      const RANK_VALUE = {
+        2: 2,
+        3: 3,
+        4: 4,
+        5: 5,
+        6: 6,
+        7: 7,
+        8: 8,
+        9: 9,
+        10: 10,
+        J: 11,
+        Q: 12,
+        K: 13,
+        A: 14,
+      };
+      const HAND_SIZE = 5; 
+
+      function buildDeck() {
+        const deck = [];
+        for (const suit of SUITS) {
+          for (const rank of RANKS) {
+            deck.push({ suit, rank, value: RANK_VALUE[rank] });
+          }
+        }
+        return deck;
+      }
+
+      function shuffle(deck) {
+        const copy = [...deck];
+        for (let i = copy.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        return copy;
+      }
+
+      function dealNewGame() {
+        const deck = shuffle(buildDeck());
+        return {
+          playerHand: deck.slice(0, HAND_SIZE),
+          cpuHand: deck.slice(HAND_SIZE, HAND_SIZE * 2),
+          playerScore: 0,
+          cpuScore: 0,
+          tableCardPlayer: null,
+          tableCardCpu: null,
+          roundActive: true, 
+        };
+      }
+
+      let state = dealNewGame();
+
+      const elPlayerHand = document.getElementById("player-hand");
+      const elCpuHand = document.getElementById("cpu-hand");
+      const elPlayerSlot = document.getElementById("player-slot");
+      const elCpuSlot = document.getElementById("cpu-slot");
+      const elPlayerScore = document.getElementById("player-score");
+      const elCpuScore = document.getElementById("cpu-score");
+      const elResultBanner = document.getElementById("result-banner");
+      const elNextRoundBtn = document.getElementById("next-round-btn");
+      const elResetBtn = document.getElementById("reset-btn");
+
+      function isRedSuit(suit) {
+        return suit === "♥" || suit === "♦";
+      }
+
+      function renderCardEl(card, { faceDown = false, disabled = false } = {}) {
+        if (faceDown) {
+          const back = document.createElement("div");
+          back.className = "card-back";
+          return back;
+        }
+        const el = document.createElement("div");
+        el.className =
+          "card" +
+          (isRedSuit(card.suit) ? " red" : "") +
+          (disabled ? " disabled" : "");
+        el.innerHTML = `
+      <div class="top">${card.rank}${card.suit}</div>
+      <div class="suit-big">${card.suit}</div>
+      <div class="bottom">${card.rank}${card.suit}</div>
+    `;
+        return el;
+      }
+
+      function renderHands() {
+        elPlayerHand.innerHTML = "";
+        state.playerHand.forEach((card, idx) => {
+          const el = renderCardEl(card, { disabled: !state.roundActive });
+          el.addEventListener("click", () => playCard(idx));
+          elPlayerHand.appendChild(el);
+        });
+
+        elCpuHand.innerHTML = "";
+        state.cpuHand.forEach(() => {
+          elCpuHand.appendChild(renderCardEl(null, { faceDown: true }));
+        });
+      }
+
+      function renderTable() {
+        elPlayerSlot.innerHTML = state.tableCardPlayer
+          ? renderCardEl(state.tableCardPlayer).outerHTML
+          : '<div class="empty-slot"></div>';
+        elCpuSlot.innerHTML = state.tableCardCpu
+          ? renderCardEl(state.tableCardCpu).outerHTML
+          : '<div class="empty-slot"></div>';
+      }
+
+      function renderScores() {
+        elPlayerScore.textContent = `You: ${state.playerScore}`;
+        elCpuScore.textContent = `CPU: ${state.cpuScore}`;
+      }
+
+      function playCard(playerCardIndex) {
+        if (!state.roundActive) return;
+        if (state.playerHand.length === 0 || state.cpuHand.length === 0) return;
+
+        const playerCard = state.playerHand.splice(playerCardIndex, 1)[0];
+        const cpuIndex = Math.floor(Math.random() * state.cpuHand.length);
+        const cpuCard = state.cpuHand.splice(cpuIndex, 1)[0];
+
+        state.tableCardPlayer = playerCard;
+        state.tableCardCpu = cpuCard;
+        state.roundActive = false; 
+
+        const outcome = evaluateRound(playerCard, cpuCard);
+        applyRoundOutcome(outcome);
+
+        renderHands();
+        renderTable();
+        renderScores();
+
+        elNextRoundBtn.disabled =
+          state.playerHand.length === 0 || state.cpuHand.length === 0;
+        checkWinCondition(); 
+      }
+
+      function evaluateRound(playerCard, cpuCard) {
+        console.log(
+          "[evaluateRound] stub triggered:",
+          playerCard,
+          "vs",
+          cpuCard
+        );
+        if (playerCard.value > cpuCard.value) return "player";
+        if (playerCard.value < cpuCard.value) return "cpu";
+        return "tie";
+      }
+
+      function applyRoundOutcome(outcome) {
+        if (outcome === "player") {
+          state.playerScore += 1;
+          elResultBanner.className = "result-banner win";
+          elResultBanner.textContent = "✅ You win this round!";
+        } else if (outcome === "cpu") {
+          state.cpuScore += 1;
+          elResultBanner.className = "result-banner lose";
+          elResultBanner.textContent = "❌ CPU wins this round.";
+        } else {
+          elResultBanner.className = "result-banner tie";
+          elResultBanner.textContent = "🤝 It's a tie — no points awarded.";
+        }
+      }
+
+      function nextRound() {
+        state.tableCardPlayer = null;
+        state.tableCardCpu = null;
+        state.roundActive = true;
+        elNextRoundBtn.disabled = true;
+        elResultBanner.className = "result-banner";
+        elResultBanner.textContent = "Pick a card to play your next round.";
+        renderHands();
+        renderTable();
+      }
+
+      function checkWinCondition() {
+        if (state.playerHand.length > 0 || state.cpuHand.length > 0)
+          return null;
+
+        let message, cls;
+        if (state.playerScore > state.cpuScore) {
+          message = `🏆 You win the game, ${state.playerScore} – ${state.cpuScore}!`;
+          cls = "win";
+        } else if (state.cpuScore > state.playerScore) {
+          message = `💀 CPU wins the game, ${state.cpuScore} – ${state.playerScore}.`;
+          cls = "lose";
+        } else {
+          message = `🤝 The game ends in a tie, ${state.playerScore} – ${state.cpuScore}.`;
+          cls = "tie";
+        }
+        elResultBanner.className = "result-banner " + cls;
+        elResultBanner.textContent = message;
+        elNextRoundBtn.disabled = true;
+        return message;
+      }
+
+      function resetGame() {
+        state = dealNewGame();
+        elResultBanner.className = "result-banner";
+        elResultBanner.textContent = "Pick a card to play your first round.";
+        elNextRoundBtn.disabled = true;
+        renderHands();
+        renderTable();
+        renderScores();
+      }
+
+      elNextRoundBtn.addEventListener("click", nextRound);
+      elResetBtn.addEventListener("click", resetGame);
+
+      renderHands();
+      renderTable();
+      renderScores();
+    </script>
+  </body>
+</html>

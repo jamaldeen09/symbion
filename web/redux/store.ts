@@ -1,10 +1,9 @@
 import { configureStore } from "@reduxjs/toolkit"
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux"
-import { artifactsSlice } from "./slices/artifacts-slice";
 
 const store = configureStore({
     reducer: {
-        artifactsSlice: artifactsSlice.reducer,
+       
     },
 });
 

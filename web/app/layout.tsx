@@ -2,7 +2,6 @@ import { Geist_Mono, Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils";
-import ReduxProvider from "@/redux/provider";
 import TanstackQueryProvider from "@/providers/TanstackQueryProvider";
 import { ClerkProvider } from "@clerk/nextjs";
 
@@ -27,11 +26,11 @@ export default function RootLayout({
       <body>
         <ThemeProvider>
           <ClerkProvider>
-            <ReduxProvider>
+            {/* <ReduxProvider> */}
               <TanstackQueryProvider>
                 {children}
               </TanstackQueryProvider>
-            </ReduxProvider>
+            {/* </ReduxProvider> */}
           </ClerkProvider>
         </ThemeProvider>
       </body>

@@ -1,8 +1,9 @@
 "use client"
-import { useArtifactWindowStore } from "@/app/hooks/artifact-window/use-artifact-window-store";
+
 import { generateSurfaceHash } from "@/lib/utils";
 import { useEffect, useMemo, useRef } from "react";
 import { debounce } from "lodash"
+import { useWindowStore } from "@/hooks/windows/use-window-store";
 
 export default function SurfaceStateSyncProvider({ surfaceId }: { surfaceId: string; }) {
     const lastSyncedHashRef = useRef<string | null>(
@@ -32,7 +33,7 @@ export default function SurfaceStateSyncProvider({ surfaceId }: { surfaceId: str
     }, [surfaceId]);
 
     useEffect(() => {
-        const unsub = useArtifactWindowStore.subscribe(async (state) => {
+        const unsub = useWindowStore.subscribe(async (state) => {
             if (!state._hasHydrated) return;
             debouncedSync(state.windows);
         });
@@ -42,8 +43,5 @@ export default function SurfaceStateSyncProvider({ surfaceId }: { surfaceId: str
             debouncedSync.cancel();
         };
     }, []);
-
-
-
     return null;
 }

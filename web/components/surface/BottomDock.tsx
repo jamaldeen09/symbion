@@ -1,6 +1,8 @@
 "use client";
-import Artifact from "./artifact-launcher/ArtifactLauncher";
+import FolderPlusIcon from "../svgs/FolderPlusIcon";
 import DockDivider from "./DockDivider";
+import DockItem from "./DockItem";
+
 
 export default function BottomDock() {
     const handleAppLaunch = (appName: string) => {
@@ -21,33 +23,45 @@ export default function BottomDock() {
 
                 {/* Group A: Programs */}
                 <div className="flex items-center gap-[10px]">
-                    <Artifact size={34} name="After Effects" src="https://framerusercontent.com/images/FGXr3pqtmk0UpCXHi0IZJgC4H8.png" onClick={() => handleAppLaunch('AE')} />
-                    <Artifact size={34} name="Photoshop" src="https://framerusercontent.com/images/iDBBsIGms7v4vkBAa7EBeh9PGuM.png" onClick={() => handleAppLaunch('PS')} />
-                    <Artifact size={34} name="Illustrator" src="https://framerusercontent.com/images/VHJFQu7ykJIdCqTTduCtUcpcA.png" onClick={() => handleAppLaunch('AI')} />
-                    <Artifact size={34} name="Error Console" src="https://framerusercontent.com/images/BSPnJPSH4K1WxhDJJbEfUgT7U.png" onClick={() => handleAppLaunch('Error')} />
+                    <DockItem
+                        name="New Folder"
+                        type="svg"
+                        svg={(<FolderPlusIcon />)}
+                        onClick={() => handleAppLaunch('AE')}
+                    />
+
+                    <DockItem
+                        type="image"
+                        name="New folder"
+                        src="https://framerusercontent.com/images/iDBBsIGms7v4vkBAa7EBeh9PGuM.png"
+                        onClick={() => handleAppLaunch('PS')}
+                    />
+
+                    <DockItem type="image" name="Illustrator" src="https://framerusercontent.com/images/VHJFQu7ykJIdCqTTduCtUcpcA.png" onClick={() => handleAppLaunch('AI')} />
+                    <DockItem type="image" name="Error Console" src="https://framerusercontent.com/images/BSPnJPSH4K1WxhDJJbEfUgT7U.png" onClick={() => handleAppLaunch('Error')} />
                 </div>
 
                 <DockDivider />
 
                 {/* Group B: Info / Utilities */}
                 <div className="flex items-center gap-[10px]">
-                    <Artifact size={34} name="Notes" src="https://framerusercontent.com/images/es0axIAu0guUZSRBu6xvsteey8w.png" onClick={() => handleAppLaunch('Notes')} />
-                    <Artifact size={34} name="Gallery" src="https://framerusercontent.com/images/yNLcekVy7df0d4hAoz6dZR8s.png" onClick={() => handleAppLaunch('Gallery')} />
+                    <DockItem type="image" name="Notes" src="https://framerusercontent.com/images/es0axIAu0guUZSRBu6xvsteey8w.png" onClick={() => handleAppLaunch('Notes')} />
+                    <DockItem type="image" name="Gallery" src="https://framerusercontent.com/images/yNLcekVy7df0d4hAoz6dZR8s.png" onClick={() => handleAppLaunch('Gallery')} />
                 </div>
 
                 <DockDivider />
 
                 {/* Group C: Social Channels */}
                 <div className="flex items-center gap-[10px]">
-                    <Artifact size={34} name="Instagram" src="https://framerusercontent.com/images/fZcO2HO3MMDvuS9IcWLgq5MyMc.png" href="https://www.instagram.com/bychudy/" />
-                    <Artifact size={34} name="Mail" src="https://framerusercontent.com/images/4ZZQ6ZFOyrBZ3TXhVZjMFK7zbGk.png" href="mailto:bychudy@gmail.com" />
+                    <DockItem type="image" name="Instagram" src="https://framerusercontent.com/images/fZcO2HO3MMDvuS9IcWLgq5MyMc.png" />
+                    <DockItem type="image" name="Mail" src="https://framerusercontent.com/images/4ZZQ6ZFOyrBZ3TXhVZjMFK7zbGk.png" />
                 </div>
 
                 <DockDivider />
 
                 {/* Group D: System Bin */}
                 <div className="flex items-center">
-                    <Artifact size={34} name="Bin" src="https://framerusercontent.com/images/Hydn1FB5V1VnB099tUlAIyjV1tC4.png" onClick={() => handleAppLaunch('Trash')} />
+                    <DockItem type="image" name="Bin" src="https://framerusercontent.com/images/Hydn1FB5V1VnB099tUlAIyjV1tC4.png" onClick={() => handleAppLaunch('Trash')} />
                 </div>
             </div>
         </nav>

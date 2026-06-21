@@ -1,4 +1,5 @@
 import { ArtifactWindowData } from "@/app/hooks/artifact-window/use-artifact-window-store";
+import { Prisma } from "@/generated/prisma";
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 

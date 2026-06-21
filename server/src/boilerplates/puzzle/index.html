@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sliding Puzzle</title>
+<style>
+  :root{
+    --bg: #1a1a2e;
+    --panel: #393e6e;
+    --panel-light: #454b86;
+    --accent: #ffd369;
+    --text: #eee;
+    --win: #4caf50;
+    --empty-cell: #15152a;
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif;
+    padding: 20px;
+  }
+
+  .game-container{
+    width: 100%;
+    max-width: 440px;
+    background: var(--panel);
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+    text-align: center;
+  }
+
+  header h1{
+    font-size: 1.4rem;
+    margin: 0 0 18px;
+    color: var(--accent);
+  }
+
+  .stat-row{
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  .stat-chip{
+    background: var(--bg);
+    border-radius: 10px;
+    padding: 8px 16px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    min-width: 100px;
+  }
+
+  .stat-chip .stat-value{ color: var(--accent); }
+
+  .board-wrapper{
+    position: relative;
+    margin: 0 auto 22px;
+    width: 100%;
+    max-width: 340px;
+  }
+
+  .board{
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    aspect-ratio: 1 / 1;
+    background: var(--bg);
+    padding: 8px;
+    border-radius: 14px;
+  }
+
+  .tile{
+    background: var(--panel-light);
+    border: none;
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 1.6rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s ease, background 0.15s ease;
+  }
+
+  .tile:hover{
+    transform: scale(1.03);
+    background: var(--accent);
+    color: #1a1a2e;
+  }
+
+  .tile.empty{
+    background: var(--empty-cell);
+    cursor: default;
+    pointer-events: none;
+  }
+
+  .win-overlay{
+    position: absolute;
+    inset: 0;
+    background: rgba(26, 26, 46, 0.92);
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-align: center;
+    padding: 16px;
+  }
+
+  .win-overlay h2{
+    margin: 0;
+    color: var(--win);
+    font-size: 1.4rem;
+  }
+
+  .win-overlay p{
+    margin: 0;
+    color: #c9c9e8;
+    font-size: 0.9rem;
+  }
+
+  .hidden{ display: none !important; }
+  
+  .controls{
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+  }
+
+  .btn{
+    background: var(--accent);
+    color: #1a1a2e;
+    border: none;
+    padding: 12px 26px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.12s ease;
+  }
+
+  .btn.secondary{
+    background: var(--panel-light);
+    color: var(--text);
+    border: 2px solid var(--accent);
+  }
+
+  .btn:hover{ transform: translateY(-2px); }
+</style>
+</head>
+<body>
+
+<main class="game-container">
+
+  <header>
+    <h1>🧩 Sliding Puzzle</h1>
+  </header>
+
+  <div class="stat-row">
+    <div class="stat-chip">Moves: <span class="stat-value" id="move-count">0</span></div>
+    <div class="stat-chip">Time: <span class="stat-value" id="time-elapsed">0:00</span></div>
+  </div>
+
+  <div class="board-wrapper">
+    <div class="board" id="board"></div>
+    <div class="win-overlay hidden" id="win-overlay">
+      <h2>🏆 Solved!</h2>
+      <p id="win-detail">Solved in 0 moves and 0:00.</p>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn" id="shuffle-btn">Shuffle</button>
+    <button class="btn secondary" id="reset-btn">Reset</button>
+  </div>
+
+</main>
+
+<script>
+  const GRID_SIZE = 3;
+  const TOTAL_CELLS = GRID_SIZE * GRID_SIZE;
+  const EMPTY_VALUE = null; 
+  const SHUFFLE_MOVES = 120; 
+
+  function createSolvedBoard(){
+    const board = [];
+    for (let i = 1; i < TOTAL_CELLS; i++) board.push(i);
+    board.push(EMPTY_VALUE); 
+    return board;
+  }
+
+  const state = {
+    board: createSolvedBoard(),
+    moveCount: 0,
+    startTime: null,
+    timerIntervalId: null,
+    solved: false
+  };
+
+  const elBoard       = document.getElementById('board');
+  const elMoveCount   = document.getElementById('move-count');
+  const elTimeElapsed = document.getElementById('time-elapsed');
+  const elShuffleBtn  = document.getElementById('shuffle-btn');
+  const elResetBtn    = document.getElementById('reset-btn');
+  const elWinOverlay  = document.getElementById('win-overlay');
+  const elWinDetail   = document.getElementById('win-detail');
+
+  function getEmptyIndex(board){
+    return board.indexOf(EMPTY_VALUE);
+  }
+
+  function getRowCol(index){
+    return { row: Math.floor(index / GRID_SIZE), col: index % GRID_SIZE };
+  }
+
+  function getValidMoveIndices(board){
+    const emptyIdx = getEmptyIndex(board);
+    const { row, col } = getRowCol(emptyIdx);
+    const moves = [];
+
+    if (row > 0) moves.push(emptyIdx - GRID_SIZE);           
+    if (row < GRID_SIZE - 1) moves.push(emptyIdx + GRID_SIZE); 
+    if (col > 0) moves.push(emptyIdx - 1);                     
+    if (col < GRID_SIZE - 1) moves.push(emptyIdx + 1);         
+
+    return moves;
+  }
+
+  function isValidMove(board, tileIndex){
+    return getValidMoveIndices(board).includes(tileIndex);
+  }
+
+  function slideTile(tileIndex){
+    if (state.solved) return;
+    if (!isValidMove(state.board, tileIndex)) return; 
+
+    const emptyIdx = getEmptyIndex(state.board);
+    [state.board[tileIndex], state.board[emptyIdx]] = [state.board[emptyIdx], state.board[tileIndex]];
+
+    state.moveCount += 1;
+    elMoveCount.textContent = state.moveCount;
+
+    if (!state.timerIntervalId) startTimer();
+
+    renderBoard();
+
+    if (checkWinCondition()){
+      handleWin();
+    }
+  }
+
+  function isPuzzleSolved(board){
+    for (let i = 0; i < TOTAL_CELLS - 1; i++){
+      if (board[i] !== i + 1) return false;
+    }
+    return board[TOTAL_CELLS - 1] === EMPTY_VALUE;
+  }
+
+  function checkWinCondition(){
+    return isPuzzleSolved(state.board);
+  }
+
+  function handleWin(){
+    state.solved = true;
+    stopTimer();
+    elWinDetail.textContent = `Solved in ${state.moveCount} moves and ${formatTime(elapsedSeconds())}.`;
+    elWinOverlay.classList.remove('hidden');
+  }
+
+  function shuffleBoard(){
+    let board = createSolvedBoard();
+    let lastEmptyIdx = getEmptyIndex(board);
+
+    for (let i = 0; i < SHUFFLE_MOVES; i++){
+      const candidates = getValidMoveIndices(board);
+      const filtered = candidates.filter(idx => idx !== lastEmptyIdx);
+      const pool = filtered.length ? filtered : candidates;
+      const moveIdx = pool[Math.floor(Math.random() * pool.length)];
+
+      const emptyIdx = getEmptyIndex(board);
+      lastEmptyIdx = moveIdx;
+      [board[moveIdx], board[emptyIdx]] = [board[emptyIdx], board[moveIdx]];
+    }
+
+    return board;
+  }
+
+  function startShuffle(){
+    state.board = shuffleBoard();
+    state.moveCount = 0;
+    state.solved = false;
+    elMoveCount.textContent = '0';
+    elWinOverlay.classList.add('hidden');
+    resetTimer();
+    renderBoard();
+  }
+
+  function resetGame(){
+    state.board = createSolvedBoard();
+    state.moveCount = 0;
+    state.solved = false;
+    elMoveCount.textContent = '0';
+    elWinOverlay.classList.add('hidden');
+    resetTimer();
+    renderBoard();
+  }
+
+  function elapsedSeconds(){
+    if (!state.startTime) return 0;
+    return Math.floor((Date.now() - state.startTime) / 1000);
+  }
+
+  function formatTime(totalSeconds){
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  }
+
+  function startTimer(){
+    state.startTime = Date.now();
+    state.timerIntervalId = setInterval(() => {
+      elTimeElapsed.textContent = formatTime(elapsedSeconds());
+    }, 1000);
+  }
+
+  function stopTimer(){
+    clearInterval(state.timerIntervalId);
+    state.timerIntervalId = null;
+  }
+
+  function resetTimer(){
+    stopTimer();
+    state.startTime = null;
+    elTimeElapsed.textContent = '0:00';
+  }
+
+  function renderBoard(){
+    elBoard.innerHTML = '';
+    state.board.forEach((value, idx) => {
+      const tile = document.createElement('button');
+      if (value === EMPTY_VALUE){
+        tile.className = 'tile empty';
+        tile.setAttribute('aria-label', 'Empty space');
+      } else {
+        tile.className = 'tile';
+        tile.textContent = value;
+        tile.addEventListener('click', () => slideTile(idx));
+      }
+      elBoard.appendChild(tile);
+    });
+  }
+
+  elShuffleBtn.addEventListener('click', startShuffle);
+  elResetBtn.addEventListener('click', resetGame);
+
+  startShuffle();
+</script>
+</body>
+</html>

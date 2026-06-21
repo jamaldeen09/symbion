@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
-export interface ArtifactWindowData {
+export interface WindowData {
     id: string;
     x: number;
     y: number;
@@ -12,27 +12,26 @@ export interface ArtifactWindowData {
     mode: "full-screen" | "default";
 };
 
-interface ArtifactWindowStore {
-    windows: Map<string, ArtifactWindowData>;
+interface WindowStore {
+    windows: Map<string, WindowData>;
     _hasHydrated: boolean;
     setHasHydrated: (state: boolean) => void;
-
-    updateArtifactWindow:
-    (id: string, data: Partial<ArtifactWindowData>) => void;
-    registerArtifactWindow:
-    (id: string, initialData: ArtifactWindowData) => void;
-    removeArtifactWindow: (id: string) => void;
+    updateWindow:
+    (id: string, data: Partial<WindowData>) => void;
+    registerWindow:
+    (id: string, initialData: WindowData) => void;
+    removeWindow: (id: string) => void;
     bringToFront: (id: string) => void;
 }
 
-export const useArtifactWindowStore = create<ArtifactWindowStore>()(
+export const useWindowStore = create<WindowStore>()(
     persist(
         (set) => ({
             windows: new Map(),
             _hasHydrated: false,
             setHasHydrated: (state) => set({ _hasHydrated: state }),
 
-            registerArtifactWindow: (id, initialData) =>
+            registerWindow: (id, initialData) =>
                 set((state) => {
                     let newZIndex = initialData.zIndex;
                     if (state.windows.size > 0) {
@@ -44,14 +43,14 @@ export const useArtifactWindowStore = create<ArtifactWindowStore>()(
                     return { windows: newWindows };
                 }),
 
-            removeArtifactWindow: (id) =>
+            removeWindow: (id) =>
                 set((state) => {
                     const newWindows = new Map(state.windows);
                     newWindows.delete(id);
                     return { windows: newWindows };
                 }),
 
-            updateArtifactWindow: (id, data) =>
+            updateWindow: (id, data) =>
                 set((state) => {
                     const existing = state.windows.get(id);
                     if (!existing) return state;
@@ -75,7 +74,7 @@ export const useArtifactWindowStore = create<ArtifactWindowStore>()(
                 }),
         }),
         {
-            name: "artifact-window-storage",
+            name: "window-storage",
             onRehydrateStorage: () => (state) => state?.setHasHydrated(true),
             storage: createJSONStorage(() => localStorage, {
                 replacer: (_, value) => {
@@ -84,7 +83,7 @@ export const useArtifactWindowStore = create<ArtifactWindowStore>()(
                     return value;
                 },
                 reviver: (key, value) => {
-                    if (key === "windows") return new Map(value as [string, ArtifactWindowData][]);
+                    if (key === "windows") return new Map(value as [string, WindowData][]);
                     return value;
                 },
             }),

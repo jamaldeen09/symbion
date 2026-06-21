@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Poll Decision</title>
+<style>
+  :root{
+    --bg: #1a1a2e;
+    --panel: #393e6e;
+    --panel-light: #454b86;
+    --accent: #ffd369;
+    --text: #eee;
+    --muted: #aab;
+    --leader: #4caf50;
+    --danger: #e15757;
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif;
+    padding: 20px;
+  }
+
+  .app-container{
+    width: 100%;
+    max-width: 600px;
+    background: var(--panel);
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+  }
+
+  header{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+  }
+
+  header h1{
+    font-size: 1.4rem;
+    margin: 0;
+    color: var(--accent);
+  }
+
+  .phase-chip{
+    background: var(--bg);
+    border-radius: 10px;
+    padding: 6px 14px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--accent);
+  }
+
+  .poll-question{
+    background: var(--bg);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    font-size: 1.05rem;
+    color: var(--muted);
+  }
+
+  .setup-panel{
+    margin-bottom: 22px;
+  }
+
+  .add-option-row{
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .add-option-row input{
+    flex: 1;
+    background: var(--bg);
+    border: 2px solid transparent;
+    border-radius: 10px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-size: 1rem;
+  }
+
+  .add-option-row input:focus{
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .btn{
+    background: var(--accent);
+    color: #1a1a2e;
+    border: none;
+    padding: 12px 22px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: transform 0.12s ease, opacity 0.15s ease;
+    white-space: nowrap;
+  }
+
+  .btn.secondary{
+    background: var(--panel-light);
+    color: var(--text);
+    border: 2px solid var(--accent);
+  }
+
+  .btn.danger-outline{
+    background: transparent;
+    color: var(--danger);
+    border: 2px solid var(--danger);
+  }
+
+  .btn:disabled{ opacity: 0.35; cursor: not-allowed; }
+  .btn:hover:not(:disabled){ transform: translateY(-2px); }
+
+  .pending-options{
+    list-style: none;
+    margin: 0 0 18px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .pending-options li{
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.95rem;
+  }
+
+  .pending-options .remove-btn{
+    background: none;
+    border: none;
+    color: var(--danger);
+    font-size: 1rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 2px 6px;
+  }
+
+  .setup-actions{
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+
+  .empty-hint{
+    color: var(--muted);
+    font-size: 0.9rem;
+    font-style: italic;
+    margin-bottom: 14px;
+  }
+
+  .vote-options{
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 22px;
+  }
+
+  .vote-option-btn{
+    background: var(--panel-light);
+    border: 2px solid transparent;
+    color: var(--text);
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: transform 0.1s ease, border-color 0.12s ease;
+  }
+
+  .vote-option-btn:hover{
+    transform: translateY(-2px);
+    border-color: var(--accent);
+  }
+
+  .vote-option-btn:active{ transform: translateY(0); }
+
+  .results-panel{
+    background: var(--bg);
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-bottom: 22px;
+  }
+
+  .results-header{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .results-header h2{
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--accent);
+    margin: 0;
+  }
+
+  .total-votes{
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  .result-row{
+    margin-bottom: 14px;
+  }
+
+  .result-row:last-child{ margin-bottom: 0; }
+
+  .result-row .result-label-line{
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    margin-bottom: 6px;
+  }
+
+  .result-row .result-label-line .label-text{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .leader-badge{
+    background: var(--leader);
+    color: #0e2710;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 6px;
+    text-transform: uppercase;
+  }
+
+  .bar-track{
+    background: var(--panel);
+    border-radius: 6px;
+    height: 14px;
+    overflow: hidden;
+  }
+
+  .bar-fill{
+    height: 100%;
+    background: var(--accent);
+    border-radius: 6px;
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+
+  .bar-fill.is-leader{ background: var(--leader); }
+
+  .controls-row{
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .hidden{ display: none !important; }
+</style>
+</head>
+<body>
+
+<main class="app-container">
+
+  <header>
+    <h1>🗳️ Poll & Decision Tool</h1>
+    <div class="phase-chip" id="phase-chip">Setup</div>
+  </header>
+
+  <div class="poll-question">What should we get for dinner?</div>
+
+  <section class="setup-panel" id="setup-panel">
+    <div class="add-option-row">
+      <input type="text" id="option-input" placeholder="Add an option (e.g. Sushi)" maxlength="40">
+      <button class="btn secondary" id="add-option-btn">Add Option</button>
+    </div>
+
+    <p class="empty-hint hidden" id="empty-hint">Add at least 2 options to start a vote.</p>
+
+    <ul class="pending-options" id="pending-options"></ul>
+
+    <div class="setup-actions">
+      <button class="btn" id="start-vote-btn">Start Vote →</button>
+    </div>
+  </section>
+
+  <section id="voting-panel" class="hidden">
+    <div class="vote-options" id="vote-options"></div>
+
+    <div class="results-panel">
+      <div class="results-header">
+        <h2>Results</h2>
+        <div class="total-votes" id="total-votes">0 votes</div>
+      </div>
+      <div id="results-list"></div>
+    </div>
+
+    <div class="controls-row">
+      <button class="btn secondary" id="edit-options-btn">← Edit Options</button>
+      <button class="btn danger-outline" id="reset-poll-btn">Reset Poll</button>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  const DEFAULT_OPTIONS = ["Pizza", "Burgers", "Sushi"];
+  let nextOptionId = 1;
+
+  function makeOption(label){
+    return { id: nextOptionId++, label, votes: 0 };
+  }
+
+  const state = {
+    options: DEFAULT_OPTIONS.map(makeOption),
+    phase: 'setup' 
+  };
+
+  const elPhaseChip      = document.getElementById('phase-chip');
+  const elSetupPanel     = document.getElementById('setup-panel');
+  const elVotingPanel    = document.getElementById('voting-panel');
+  const elOptionInput    = document.getElementById('option-input');
+  const elAddOptionBtn   = document.getElementById('add-option-btn');
+  const elPendingOptions = document.getElementById('pending-options');
+  const elEmptyHint      = document.getElementById('empty-hint');
+  const elStartVoteBtn   = document.getElementById('start-vote-btn');
+  const elVoteOptions    = document.getElementById('vote-options');
+  const elResultsList    = document.getElementById('results-list');
+  const elTotalVotes     = document.getElementById('total-votes');
+  const elEditOptionsBtn = document.getElementById('edit-options-btn');
+  const elResetPollBtn   = document.getElementById('reset-poll-btn');
+
+  function addOption(){
+    const label = elOptionInput.value.trim();
+    if (!label) return;
+
+    state.options.push(makeOption(label));
+    elOptionInput.value = '';
+    elOptionInput.focus();
+    renderSetup();
+  }
+
+  function removeOption(id){
+    state.options = state.options.filter(opt => opt.id !== id);
+    renderSetup();
+  }
+
+  function escapeHtml(str){
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function renderSetup(){
+    elPendingOptions.innerHTML = '';
+    state.options.forEach(opt => {
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <span>${escapeHtml(opt.label)}</span>
+        <button class="remove-btn" aria-label="Remove ${escapeHtml(opt.label)}">✕</button>
+      `;
+      li.querySelector('.remove-btn').addEventListener('click', () => removeOption(opt.id));
+      elPendingOptions.appendChild(li);
+    });
+
+    elEmptyHint.classList.toggle('hidden', state.options.length >= 2);
+    elStartVoteBtn.disabled = state.options.length < 2;
+  }
+
+  function startVote(){
+    if (state.options.length < 2) return;
+    state.phase = 'voting';
+    elPhaseChip.textContent = 'Voting';
+    elSetupPanel.classList.add('hidden');
+    elVotingPanel.classList.remove('hidden');
+    renderVoting();
+  }
+
+  function backToSetup(){
+    state.phase = 'setup';
+    elPhaseChip.textContent = 'Setup';
+    elVotingPanel.classList.add('hidden');
+    elSetupPanel.classList.remove('hidden');
+    renderSetup();
+  }
+
+  function castVote(id){
+    const option = state.options.find(opt => opt.id === id);
+    if (!option) return;
+    option.votes += 1;
+    renderVoting();
+  }
+
+  function renderVoting(){
+    elVoteOptions.innerHTML = '';
+    state.options.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.className = 'vote-option-btn';
+      btn.textContent = opt.label;
+      btn.addEventListener('click', () => castVote(opt.id));
+      elVoteOptions.appendChild(btn);
+    });
+
+    renderResults();
+  }
+
+  function calculateResults(){
+    const sorted = [...state.options].sort((a, b) => b.votes - a.votes);
+    const totalVotes = sorted.reduce((sum, opt) => sum + opt.votes, 0);
+    const leader = totalVotes > 0 ? sorted[0] : null;
+    return { sorted, totalVotes, leader };
+  }
+
+  function renderResults(){
+    const { sorted, totalVotes, leader } = calculateResults();
+
+    elTotalVotes.textContent = `${totalVotes} vote${totalVotes === 1 ? '' : 's'}`;
+    elResultsList.innerHTML = '';
+
+    sorted.forEach(opt => {
+      const pct = totalVotes > 0 ? Math.round((opt.votes / totalVotes) * 100) : 0;
+      const isLeader = leader && opt.id === leader.id && opt.votes > 0;
+
+      const row = document.createElement('div');
+      row.className = 'result-row';
+      row.innerHTML = `
+        <div class="result-label-line">
+          <span class="label-text">${escapeHtml(opt.label)} ${isLeader ? '<span class="leader-badge">Leading</span>' : ''}</span>
+          <span>${opt.votes} (${pct}%)</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill ${isLeader ? 'is-leader' : ''}" style="width:${pct}%"></div>
+        </div>
+      `;
+      elResultsList.appendChild(row);
+    });
+  }
+
+  function resetPoll(){
+    state.options.forEach(opt => opt.votes = 0);
+    renderVoting();
+  }
+
+  elAddOptionBtn.addEventListener('click', addOption);
+  elOptionInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addOption(); });
+  elStartVoteBtn.addEventListener('click', startVote);
+  elEditOptionsBtn.addEventListener('click', backToSetup);
+  elResetPollBtn.addEventListener('click', resetPoll);
+
+  renderSetup();
+</script>
+</body>
+</html>

@@ -13,16 +13,3 @@ export function createRateLimiter({ limit, window, prefix }: {
         prefix,
     });
 };
-
-
-export const createCaseLimiter = createRateLimiter({
-    limit: 5,
-    window: "1h",
-    prefix: "ratelimit:case_create",
-});
-
-export const createPresenceLimiter = createRateLimiter({
-    limit: 100,
-    window: "1m",
-    prefix: "ratelimit:create_presence",
-});

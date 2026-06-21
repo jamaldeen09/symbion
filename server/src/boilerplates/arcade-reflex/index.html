@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arcade Reflex</title>
+<style>
+  :root{
+    --bg: #1a1a2e;
+    --panel: #393e6e;
+    --panel-light: #454b86;
+    --accent: #ffd369;
+    --text: #eee;
+    --arena-bg: #15152a;
+    --miss: #e15757;
+    --hit: #4caf50;
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif;
+    padding: 20px;
+  }
+
+  .game-container{
+    width: 100%;
+    max-width: 640px;
+    background: var(--panel);
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+  }
+
+  header{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+  }
+
+  header h1{
+    font-size: 1.4rem;
+    margin: 0;
+    color: var(--accent);
+  }
+
+  .stat-row{
+    display: flex;
+    gap: 12px;
+  }
+
+  .stat-chip{
+    background: var(--bg);
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  .stat-chip .stat-value{ color: var(--accent); }
+
+  .arena{
+    position: relative;
+    width: 100%;
+    height: 360px;
+    background: var(--arena-bg);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 20px;
+    cursor: crosshair;
+    border: 1px solid #2c2f55;
+  }
+
+  .target{
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #ffe49a, var(--accent) 70%);
+    box-shadow: 0 0 18px rgba(255, 211, 105, 0.55);
+    border: none;
+    cursor: pointer;
+    transform: scale(0);
+    animation: pop-in 0.12s ease forwards, shrink-out linear forwards;
+  }
+
+  @keyframes pop-in{
+    to{ transform: scale(1); }
+  }
+
+  @keyframes shrink-out{
+    from{ opacity: 1; }
+    to{ opacity: 0.15; }
+  }
+
+  .target:active{ filter: brightness(0.85); }
+
+  .hit-spark{
+    position: absolute;
+    pointer-events: none;
+    border-radius: 50%;
+    border: 2px solid var(--hit);
+    animation: spark-pulse 0.4s ease forwards;
+  }
+
+  @keyframes spark-pulse{
+    from{ transform: scale(0.6); opacity: 1; }
+    to{ transform: scale(2); opacity: 0; }
+  }
+
+  .arena-overlay{
+    position: absolute;
+    inset: 0;
+    background: rgba(21, 21, 42, 0.92);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    text-align: center;
+    padding: 20px;
+  }
+
+  .arena-overlay h2{
+    margin: 0;
+    color: var(--accent);
+    font-size: 1.5rem;
+  }
+
+  .arena-overlay p{
+    margin: 0;
+    color: #c9c9e8;
+    font-size: 0.95rem;
+  }
+
+  .hidden{ display: none !important; }
+
+  .controls{
+    display: flex;
+    justify-content: center;
+  }
+
+  .btn{
+    background: var(--accent);
+    color: #1a1a2e;
+    border: none;
+    padding: 14px 32px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.12s ease;
+  }
+
+  .btn:hover{ transform: translateY(-2px); }
+</style>
+</head>
+<body>
+
+<main class="game-container">
+
+  <header>
+    <h1>⚡ Arcade Reflex</h1>
+    <div class="stat-row">
+      <div class="stat-chip">Score: <span class="stat-value" id="score-value">0</span></div>
+      <div class="stat-chip">Time: <span class="stat-value" id="time-value">30</span>s</div>
+    </div>
+  </header>
+
+  <div class="arena" id="arena">
+    <div class="arena-overlay" id="arena-overlay">
+      <h2>Reflex Challenge</h2>
+      <p>Click the glowing targets before they fade out.<br>Targets spawn faster the longer you survive.</p>
+      <button class="btn" id="start-btn">Start</button>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn hidden" id="restart-btn">Restart</button>
+  </div>
+
+</main>
+
+<script>
+  const GAME_DURATION_MS = 30000;   
+  const WIN_SCORE = 25;             
+
+  const BASE_SPAWN_DELAY = 1100;    
+  const MIN_SPAWN_DELAY = 380;      
+  const BASE_LIFESPAN = 1500;       
+  const MIN_LIFESPAN = 550;         
+  const BASE_SIZE = 56;             
+  const MIN_SIZE = 32;              
+
+  const state = {
+    running: false,
+    score: 0,
+    startTime: null,
+    spawnTimeoutId: null,
+    tickIntervalId: null,
+    activeTargets: new Set() 
+  };
+
+  const elArena        = document.getElementById('arena');
+  const elArenaOverlay = document.getElementById('arena-overlay');
+  const elStartBtn      = document.getElementById('start-btn');
+  const elRestartBtn    = document.getElementById('restart-btn');
+  const elScoreValue    = document.getElementById('score-value');
+  const elTimeValue     = document.getElementById('time-value');
+
+  function updateDifficulty(elapsedMs){
+    const progress = Math.min(elapsedMs / GAME_DURATION_MS, 1); 
+
+    return {
+      spawnDelay: BASE_SPAWN_DELAY - (BASE_SPAWN_DELAY - MIN_SPAWN_DELAY) * progress,
+      lifespan:   BASE_LIFESPAN   - (BASE_LIFESPAN   - MIN_LIFESPAN)   * progress,
+      size:       BASE_SIZE       - (BASE_SIZE       - MIN_SIZE)       * progress
+    };
+  }
+
+  function generateTarget(arenaWidth, arenaHeight, difficulty){
+    const size = difficulty.size;
+    const x = Math.random() * (arenaWidth - size);
+    const y = Math.random() * (arenaHeight - size);
+    return { x, y, size, lifespan: difficulty.lifespan };
+  }
+
+  function scheduleNextSpawn(){
+    if (!state.running) return;
+
+    const elapsed = Date.now() - state.startTime;
+    const difficulty = updateDifficulty(elapsed);
+
+    state.spawnTimeoutId = setTimeout(() => {
+      spawnTarget();
+      scheduleNextSpawn();
+    }, difficulty.spawnDelay);
+  }
+
+  function spawnTarget(){
+    if (!state.running) return;
+
+    const elapsed = Date.now() - state.startTime;
+    const difficulty = updateDifficulty(elapsed);
+    const arenaRect = elArena.getBoundingClientRect();
+    const spec = generateTarget(arenaRect.width, arenaRect.height, difficulty);
+
+    const targetEl = document.createElement('button');
+    targetEl.className = 'target';
+    targetEl.style.left = spec.x + 'px';
+    targetEl.style.top = spec.y + 'px';
+    targetEl.style.width = spec.size + 'px';
+    targetEl.style.height = spec.size + 'px';
+    targetEl.style.animationDuration = `0.12s, ${spec.lifespan}ms`;
+    targetEl.setAttribute('aria-label', 'Target');
+
+    const missTimer = setTimeout(() => removeTarget(targetEl, false), spec.lifespan);
+
+    targetEl.addEventListener('click', () => {
+      clearTimeout(missTimer);
+      spawnHitSpark(spec.x + spec.size / 2, spec.y + spec.size / 2, spec.size);
+      removeTarget(targetEl, true);
+    });
+
+    state.activeTargets.add(targetEl);
+    elArena.appendChild(targetEl);
+  }
+
+  function removeTarget(targetEl, wasHit){
+    if (!state.activeTargets.has(targetEl)) return; 
+    state.activeTargets.delete(targetEl);
+    targetEl.remove();
+
+    if (wasHit){
+      state.score += 1;
+      elScoreValue.textContent = state.score;
+      if (checkWinCondition()){
+        endGame(true);
+      }
+    }
+  }
+
+  function spawnHitSpark(cx, cy, size){
+    const spark = document.createElement('div');
+    spark.className = 'hit-spark';
+    spark.style.width = size + 'px';
+    spark.style.height = size + 'px';
+    spark.style.left = (cx - size / 2) + 'px';
+    spark.style.top = (cy - size / 2) + 'px';
+    elArena.appendChild(spark);
+    setTimeout(() => spark.remove(), 400);
+  }
+
+  function checkWinCondition(){
+    return state.score >= WIN_SCORE;
+  }
+
+  function tick(){
+    const elapsed = Date.now() - state.startTime;
+    const remaining = Math.max(0, GAME_DURATION_MS - elapsed);
+    elTimeValue.textContent = Math.ceil(remaining / 1000);
+
+    if (remaining <= 0){
+      endGame(false);
+    }
+  }
+
+  function startGame(){
+    state.running = true;
+    state.score = 0;
+    state.startTime = Date.now();
+    elScoreValue.textContent = '0';
+    elTimeValue.textContent = Math.ceil(GAME_DURATION_MS / 1000);
+
+    elArenaOverlay.classList.add('hidden');
+    elRestartBtn.classList.add('hidden');
+
+    state.tickIntervalId = setInterval(tick, 100);
+    scheduleNextSpawn();
+  }
+
+  function endGame(won){
+    state.running = false;
+    clearTimeout(state.spawnTimeoutId);
+    clearInterval(state.tickIntervalId);
+
+    state.activeTargets.forEach(el => el.remove());
+    state.activeTargets.clear();
+
+    elArenaOverlay.classList.remove('hidden');
+    elArenaOverlay.innerHTML = `
+      <h2>${won ? '🏆 You Win!' : '⏱️ Time\'s Up!'}</h2>
+      <p>Final score: <strong>${state.score}</strong></p>
+    `;
+    elRestartBtn.classList.remove('hidden');
+  }
+
+  elStartBtn.addEventListener('click', startGame);
+  elRestartBtn.addEventListener('click', startGame);
+</script>
+</body>
+</html>

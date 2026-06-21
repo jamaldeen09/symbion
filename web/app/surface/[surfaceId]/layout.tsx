@@ -1,4 +1,4 @@
-import SavedArtifactWindowsProvider from "@/providers/SavedArtifactWindowsProvider";
+import SavedWindowsProvider from "@/providers/SavedWindowsProvider";
 import SurfaceStateSyncProvider from "@/providers/SurfaceStateSyncProvider";
 
 export default async function SurfaceLayout({ children, params }: {
@@ -7,9 +7,9 @@ export default async function SurfaceLayout({ children, params }: {
 }) {
     const { surfaceId } = await params;
     return (
-        <SavedArtifactWindowsProvider surfaceId={surfaceId}>
+        <SavedWindowsProvider surfaceId={surfaceId}>
             <SurfaceStateSyncProvider surfaceId={surfaceId}/>
             {children}
-        </SavedArtifactWindowsProvider>
+        </SavedWindowsProvider>
     )
 }
