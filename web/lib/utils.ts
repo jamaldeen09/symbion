@@ -1,5 +1,5 @@
-import { ArtifactWindowData } from "@/app/hooks/artifact-window/use-artifact-window-store";
 import { Prisma } from "@/generated/prisma";
+import { WindowData } from "@/hooks/windows/use-window-store";
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -7,34 +7,20 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export async function generateSurfaceHash({ windows }: {
-  windows: Map<string, ArtifactWindowData>,
-}): Promise<string> {
-  // Convert Map to an array of objects
-  const windowsArray = Array.from(windows.entries())
-    .map(([id, data]) => {
-      // Destructure to remove hydration properties, capturing everything else in 'rest'
-      const { _hasHydrated, setHydrated, ...cleanData } = data as any;
-      return { id, ...cleanData };
+// In generateSurfaceHash — hash only what represents visual state
+const HASH_KEYS: (keyof WindowData)[] = ["id", "xPos", "yPos", "width", "height", "zIndex", "mode"];
 
-      // Sort by ID to ensure a deterministic order
-    }).sort((a, b) => a.id.localeCompare(b.id));
+export async function generateSurfaceHash({ windows }: { windows: Map<string, WindowData> }) {
+  const sorted = Array.from(windows.values())
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .map(w => HASH_KEYS.reduce((acc, k) => ({ ...acc, [k]: w[k] }), {}));
 
-  // Stringify the sorted array
   const encoder = new TextEncoder();
-
-  const payloadToHash = JSON.stringify({
-    windows: windowsArray,
-  });
-
-  const data = encoder.encode(payloadToHash);
-
-  // Generate SHA-256 hash
+  const data = encoder.encode(JSON.stringify(sorted));
   const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-
-  //  Convert buffer to hex string
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, "0")).join('');
+  return Array.from(new Uint8Array(hashBuffer))
+    .map(b => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 export function getPrismaErrorMessage(error: unknown, fallbackMessage?: string): string {

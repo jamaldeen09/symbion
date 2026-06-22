@@ -7,11 +7,6 @@ datasource db {
   provider = "postgresql"
 }
 
-enum ArtifactType {
-  file
-  folder
-}
-
 enum WindowMode {
   full_screen
   default
@@ -28,8 +23,6 @@ model User {
 
   surface  Surface?  @relation("UserSurface")
   projects Project[]
-  windows  Window[]
-
   @@map("users")
 }
 
@@ -43,10 +36,12 @@ model Surface {
   user            User     @relation("UserSurface", fields: [userId], references: [id], onDelete: Cascade)
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @default(now()) @map("updated_at")
+  hash            String?
 
   agentMessages  AgentMessage[]
   @@map("surfaces")
 }
+
 
 model Window {
   id        String     @id @default(cuid())
@@ -61,9 +56,6 @@ model Window {
 
   surfaceId String  @map("surface_id")
   surface   Surface @relation(fields: [surfaceId], references: [id], onDelete: Cascade)
-  userId String @map("user_id")
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
   @@map("windows")
 }
 

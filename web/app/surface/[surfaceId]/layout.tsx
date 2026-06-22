@@ -1,5 +1,5 @@
-import SavedWindowsProvider from "@/providers/SavedWindowsProvider";
 import SurfaceStateSyncProvider from "@/providers/SurfaceStateSyncProvider";
+import WindowsProvider from "@/providers/WindowsProvider";
 
 export default async function SurfaceLayout({ children, params }: {
     children: React.ReactNode,
@@ -7,9 +7,9 @@ export default async function SurfaceLayout({ children, params }: {
 }) {
     const { surfaceId } = await params;
     return (
-        <SavedWindowsProvider surfaceId={surfaceId}>
+        <WindowsProvider surfaceId={surfaceId}>
             <SurfaceStateSyncProvider surfaceId={surfaceId}/>
             {children}
-        </SavedWindowsProvider>
+        </WindowsProvider>
     )
 }

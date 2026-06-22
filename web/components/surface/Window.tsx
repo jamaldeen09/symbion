@@ -4,7 +4,6 @@ import { Rnd } from "react-rnd";
 import { WindowData, useWindowStore } from "@/hooks/windows/use-window-store";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
-import useRemoveWindowFromSaved from "@/hooks/windows/use-remove-window-from-saved";
 
 function DefaultWindow({
     windowData,
@@ -21,13 +20,13 @@ function DefaultWindow({
     return (
         <Rnd
             size={{ width: windowData.width, height: windowData.height }}
-            position={{ x: windowData.x, y: windowData.y }}
-            onDragStop={(_, d) => updateWindow(windowData.id, { x: d.x, y: d.y })}
+            position={{ x: windowData.xPos, y: windowData.yPos }}
+            onDragStop={(_, d) => updateWindow(windowData.id, { xPos: d.x, yPos: d.y })}
             onResizeStop={(_, __, ref, ___, pos) => updateWindow(windowData.id, {
                 width: parseInt(ref.style.width),
                 height: parseInt(ref.style.height),
-                x: pos.x,
-                y: pos.y
+                xPos: pos.x,
+                yPos: pos.y
             })}
             onMouseDown={() => bringToFront(windowData.id)}
             style={{ zIndex: windowData.zIndex }}
@@ -44,25 +43,26 @@ function DefaultWindow({
 export default function Window({
     id,
     className,
+    onDelete,
     children,
 }: {
     id: string,
     children: React.ReactNode,
+    onDelete: (id: string) => void;
     className?: string;
 }) {
     const {
         registerWindow,
         updateWindow,
-        removeWindow,
         _hasHydrated
     } = useWindowStore();
-    const { mutate } = useRemoveWindowFromSaved();
+    // const { mutate } = useRemoveWindow();
     const windowData = useWindowStore((state) => state.windows.get(id));
     const defaultX = (typeof window !== 'undefined' ? window.innerWidth : 1280) / 2 - 192;
     const defaultY = (typeof window !== 'undefined' ? window.innerHeight : 800) / 2 - 192;
 
     const variants = {
-        "full-screen": "fixed inset-0 h-[90vh] rounded-none",
+        "full_screen": "fixed inset-0 h-[90vh] rounded-none",
         "default": "w-full h-full rounded-xl shadow-2xl"
     }
 
@@ -71,13 +71,13 @@ export default function Window({
         if (_hasHydrated && !windowData) {
             return registerWindow(id, {
                 id,
-                x: defaultX,
-                y: defaultY,
+                xPos: defaultX,
+                yPos: defaultY,
                 width: 384,
                 height: 384,
                 zIndex: 10,
                 mode: "default",
-                updatedAt: Date.now(),
+                updatedAt: new Date(),
             });
         }
     }, [_hasHydrated, id, windowData, registerWindow, defaultX, defaultY]);
@@ -86,8 +86,8 @@ export default function Window({
         const handleSetToFullScreen = () => {
             if (window.innerWidth > 764 || !windowData) return;
             return updateWindow(windowData.id, {
-                x: defaultX,
-                y: defaultY
+                xPos: defaultX,
+                yPos: defaultY
             })
         }
 
@@ -114,7 +114,7 @@ export default function Window({
                     <button
                         onClick={() =>
                             updateWindow(windowData.id, {
-                                mode: windowData.mode === "full-screen" ? "default" : "full-screen"
+                                mode: windowData.mode === "full_screen" ? "default" : "full_screen"
                             })
                         }
                         className="hover:bg-white/10 p-1 rounded transition-colors"
@@ -127,10 +127,7 @@ export default function Window({
 
                     {/* Close Button */}
                     <button
-                        onClick={() => {
-                            mutate(windowData.id);
-                            removeWindow(windowData.id);
-                        }}
+                        onClick={() => onDelete(id)}
                         className="hover:bg-red-500/20 hover:text-red-400 p-1 rounded transition-colors"
                     >
                         <X className="size-3" />
@@ -148,7 +145,7 @@ export default function Window({
     // Make sure the window exists before showing any
     if (!_hasHydrated) return <>Loading....</>
     if (!windowData) return null;
-    if (windowData.mode === "full-screen") return windowContent;
+    if (windowData.mode === "full_screen") return windowContent;
     return <DefaultWindow windowData={windowData}>{windowContent}</DefaultWindow>
 };
 

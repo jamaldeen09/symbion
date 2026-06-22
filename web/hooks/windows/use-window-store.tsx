@@ -1,15 +1,18 @@
+import { WindowMode } from '@/generated/prisma';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+let _isHydrating = false;
+export const getIsHydrating = () => _isHydrating;
 
 export interface WindowData {
     id: string;
-    x: number;
-    y: number;
+    xPos: number;
+    yPos: number;
     width: number;
     height: number;
     zIndex: number;
-    updatedAt: number;
-    mode: "full-screen" | "default";
+    updatedAt: Date;
+    mode: WindowMode;
 };
 
 interface WindowStore {
@@ -22,6 +25,8 @@ interface WindowStore {
     (id: string, initialData: WindowData) => void;
     removeWindow: (id: string) => void;
     bringToFront: (id: string) => void;
+    clearWindows: () => void;
+    hydrateWindows: (windows: WindowData[]) => void;
 }
 
 export const useWindowStore = create<WindowStore>()(
@@ -29,7 +34,20 @@ export const useWindowStore = create<WindowStore>()(
         (set) => ({
             windows: new Map(),
             _hasHydrated: false,
+            _isHydrating: false,
             setHasHydrated: (state) => set({ _hasHydrated: state }),
+
+            hydrateWindows: (incoming) => {
+                _isHydrating = true;
+                set(() => {
+                    const newWindows = new Map<string, WindowData>();
+                    incoming.forEach((w) => newWindows.set(w.id, w));
+                    return { windows: newWindows };
+                });
+                // Reset synchronously after set() — Zustand flushes subscribers
+                // synchronously in the same tick, so the guard fires before this line
+                _isHydrating = false;
+            },
 
             registerWindow: (id, initialData) =>
                 set((state) => {
@@ -54,15 +72,21 @@ export const useWindowStore = create<WindowStore>()(
                 set((state) => {
                     const existing = state.windows.get(id);
                     if (!existing) return state;
-            
+
                     const newWindows = new Map(state.windows);
                     const cleanData = Object.keys(data).includes("updatedAt") ? data : {
                         ...data,
-                        updatedAt: Date.now(),
+                        updatedAt: new Date(),
                     };
 
-                    newWindows.set(id, { ...existing,  ...cleanData });
+                    newWindows.set(id, { ...existing, ...cleanData });
                     return { windows: newWindows };
+                }),
+
+            clearWindows: () =>
+                set(() => {
+                    const newWindows = new Map();
+                    return { windows: newWindows }
                 }),
 
             bringToFront: (id) =>
@@ -75,7 +99,9 @@ export const useWindowStore = create<WindowStore>()(
         }),
         {
             name: "window-storage",
-            onRehydrateStorage: () => (state) => state?.setHasHydrated(true),
+            onRehydrateStorage: () => (state) => {
+                if (state) state.setHasHydrated(true)
+            },
             storage: createJSONStorage(() => localStorage, {
                 replacer: (_, value) => {
                     // Convert Map to Array for storage

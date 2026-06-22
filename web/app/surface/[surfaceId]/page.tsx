@@ -1,9 +1,12 @@
 import DesktopBackground from '@/components/surface/SurfaceBackground';
 import BottomDock from '@/components/surface/BottomDock';
-import DraggableArtifact from '@/components/surface/DraggableNode';
-import ArtifactWindows from '@/components/surface/Windows';
+import Windows from '@/components/surface/Windows';
+import DraggableNode from '@/components/surface/DraggableNode';
+import TopDeck from '@/components/surface/TopDeck';
+import TestWindow from '@/components/surface/TestWindow';
 
-export default function SurfacePage() {
+export default async function SurfacePage({ params }: { params: Promise<{ surfaceId: string }> }) {
+  const { surfaceId } = await params
   return (
     <main className="relative w-screen h-screen overflow-hidden select-none bg-[#EAEAEA]">
       <DesktopBackground />
@@ -12,19 +15,23 @@ export default function SurfacePage() {
       <div
         className="absolute inset-0 pt-8 z-10 pointer-events-auto transition-all duration-300"
       >
-        {/* Artifact windows */}
-        <ArtifactWindows />
+        <TopDeck />
+
+        {/* Windows */}
+        <Windows surfaceId={surfaceId} />
 
         {/* Artifacts */}
-        <DraggableArtifact
+        <DraggableNode
           title="RAMÓWKA"
           initialTop="25%"
           initialLeft="22%"
         />
+
       </div>
 
       {/* Layer 3: The now-horizontal, scrollable BottomDock */}
       <BottomDock />
+      <TestWindow />
     </main>
   );
 }
